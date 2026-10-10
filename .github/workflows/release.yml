@@ -1,0 +1,86 @@
+# Reusable release steps shared by staging and production, so both environments
+# are deployed by the same code path: migrate -> roll images -> smoke test.
+name: Release
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      api_image:
+        description: API image pinned by digest
+        required: true
+        type: string
+      worker_image:
+        description: Worker image pinned by digest
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  release:
+    name: Release to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # A protected environment: production requires a reviewer's approval here.
+    environment: ${{ inputs.environment }}
+    env:
+      REGION: ${{ vars.GCP_REGION }}
+      API_SERVICE: relay-api-${{ inputs.environment }}
+      WORKER_SERVICE: relay-worker-${{ inputs.environment }}
+    steps:
+      - name: Refuse images that are not pinned by digest
+        run: |
+          for ref in "${{ inputs.api_image }}" "${{ inputs.worker_image }}"; do
+            [[ "$ref" =~ @sha256:[0-9a-f]{64}$ ]] || { echo "::error::not a digest reference: $ref"; exit 1; }
+          done
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+
+      - name: Record the revisions currently serving (for rollback)
+        id: before
+        run: |
+          for svc in "$API_SERVICE" "$WORKER_SERVICE"; do
+            rev=$(gcloud run services describe "$svc" --region "$REGION" --format='value(status.latestReadyRevisionName)')
+            echo "$svc was serving $rev"
+            echo "${svc//-/_}=$rev" >> "$GITHUB_OUTPUT"
+          done
+
+      # Migrations are written to be backward compatible with the running
+      # revision (expand, then contract in a later release), so applying them
+      # before the new code is safe and a code rollback needs no schema rollback.
+      - name: Apply database migrations
+        env:
+          RELAY_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          uv sync --frozen --no-dev
+          uv run relay-migrate upgrade
+
+      - name: Deploy worker
+        run: gcloud run services update "$WORKER_SERVICE" --region "$REGION" --image "${{ inputs.worker_image }}" --quiet
+      - name: Deploy API
+        run: gcloud run services update "$API_SERVICE" --region "$REGION" --image "${{ inputs.api_image }}" --quiet
+
+      - name: Smoke test
+        id: smoke
+        run: |
+          API_URL=$(gcloud run services describe "$API_SERVICE" --region "$REGION" --format='value(status.url)')
+          bash scripts/smoke-test.sh "$API_URL"
+
+      - name: Roll back on failed smoke test
+        if: failure() && steps.smoke.conclusion == 'failure'
+        run: |
+          api_prev="${{ steps.before.outputs[format('relay_api_{0}', inputs.environment)] }}"
+          worker_prev="${{ steps.before.outputs[format('relay_worker_{0}', inputs.environment)] }}"
+          [ -n "$api_prev" ] && gcloud run services update-traffic "$API_SERVICE" --region "$REGION" --to-revisions "$api_prev=100" --quiet
+          [ -n "$worker_prev" ] && gcloud run services update-traffic "$WORKER_SERVICE" --region "$REGION" --to-revisions "$worker_prev=100" --quiet
+          echo "::error::Smoke test failed; traffic was returned to the previous revisions. See docs/deployment/runbook.md."

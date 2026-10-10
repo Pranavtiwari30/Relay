@@ -1,0 +1,17 @@
+{
+  "name": "destination_redirects",
+  "description": "Configured URL answers with a redirect, which Relay never follows.",
+  "setup": {
+    "default_status": 302
+  },
+  "expect": {
+    "event_status": "DEAD_LETTERED",
+    "cause_category": [
+      "configuration"
+    ],
+    "actions_any": [
+      "fix_destination_configuration"
+    ],
+    "min_confidence": "medium"
+  }
+}

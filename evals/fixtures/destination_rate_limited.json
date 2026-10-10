@@ -1,0 +1,17 @@
+{
+  "name": "destination_rate_limited",
+  "description": "Destination throttles every attempt with 429.",
+  "setup": {
+    "default_status": 429
+  },
+  "expect": {
+    "event_status": "DEAD_LETTERED",
+    "cause_category": [
+      "rate_limited"
+    ],
+    "actions_any": [
+      "wait_and_retry"
+    ],
+    "min_confidence": "medium"
+  }
+}

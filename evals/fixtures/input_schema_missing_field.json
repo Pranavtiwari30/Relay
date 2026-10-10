@@ -1,0 +1,22 @@
+{
+  "name": "input_schema_missing_field",
+  "description": "Source omits a required field; rejected before delivery. A good example exists to compare against.",
+  "setup": {
+    "good_example_first": true,
+    "payload": {
+      "qty": "1",
+      "status": "paid"
+    }
+  },
+  "expect": {
+    "event_status": "VALIDATION_FAILED",
+    "cause_category": [
+      "schema_mismatch"
+    ],
+    "actions_any": [
+      "contact_source_owner",
+      "update_schema"
+    ],
+    "min_confidence": "medium"
+  }
+}

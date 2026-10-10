@@ -1,0 +1,85 @@
+[project]
+name = "relay-workspace"
+version = "0.1.0"
+description = "Relay — Event-Driven Integration & Reliability Platform (workspace root)"
+requires-python = ">=3.11"
+dependencies = ["relay-core[gcp,anthropic]", "relay-api", "relay-worker"]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["packages/relay_core", "services/api", "services/worker"]
+
+[tool.uv.sources]
+relay-core = { workspace = true }
+relay-api = { workspace = true }
+relay-worker = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=8.2",
+    "pytest-cov>=5.0",
+    "hypothesis>=6.100",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "pip-audit>=2.7",
+    "types-jsonschema>=4.22",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["apps/web", "packages/relay_core/relay_core/db/migrations/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "S", "C4", "SIM", "RUF", "T20", "PT"]
+ignore = [
+    "E501",   # line length is the formatter's job; it cannot wrap long strings
+    "S101",   # asserts are fine in tests and for narrowing
+    "B008",   # FastAPI Depends() in argument defaults is the framework idiom
+    "RUF012", # SQLAlchemy/pydantic class attributes are not mutable defaults
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S105", "S106", "S311", "S104", "S113"]
+"scripts/**" = ["T20", "S311"]
+"evals/**" = ["T20"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["relay_core", "relay_api", "relay_worker"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unreachable = true
+plugins = ["pydantic.mypy"]
+mypy_path = ["packages/relay_core", "services/api", "services/worker"]
+explicit_package_bases = true
+namespace_packages = true
+exclude = ["db/migrations/versions/", "apps/web/"]
+
+[[tool.mypy.overrides]]
+module = ["google.*", "argon2.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+    "integration: needs a PostgreSQL database",
+    "e2e: full path through API, queue and worker",
+    "security: security boundary tests",
+    "contract: adapter and wire-format contracts",
+]
+filterwarnings = ["error::DeprecationWarning:relay_core.*", "error::DeprecationWarning:relay_api.*", "error::DeprecationWarning:relay_worker.*"]
+
+[tool.coverage.run]
+branch = true
+source = ["relay_core", "relay_api", "relay_worker"]
+omit = ["*/db/migrations/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", "raise NotImplementedError", "\\.\\.\\."]

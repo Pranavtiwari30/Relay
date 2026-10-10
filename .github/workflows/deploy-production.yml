@@ -1,0 +1,38 @@
+# Manual, approval-gated promotion to production.
+#
+# Takes the image digests that staging already ran (printed in the staging
+# deploy's summary). It does not build: what was tested is what ships.
+# The "production" GitHub environment must have required reviewers configured.
+name: Deploy (production)
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_image:
+        description: "API image digest reference from the staging deploy (…/api@sha256:…)"
+        required: true
+        type: string
+      worker_image:
+        description: "Worker image digest reference from the staging deploy (…/worker@sha256:…)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/release.yml
+    with:
+      environment: production
+      api_image: ${{ inputs.api_image }}
+      worker_image: ${{ inputs.worker_image }}
+    secrets: inherit
+    permissions:
+      contents: read
+      id-token: write

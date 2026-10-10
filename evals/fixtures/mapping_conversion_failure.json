@@ -1,0 +1,21 @@
+{
+  "name": "mapping_conversion_failure",
+  "description": "Payload passes the input schema but a quantity cannot be converted to an integer.",
+  "setup": {
+    "payload_overrides": {
+      "qty": "two dozen"
+    }
+  },
+  "expect": {
+    "event_status": "VALIDATION_FAILED",
+    "cause_category": [
+      "mapping_error",
+      "schema_mismatch"
+    ],
+    "actions_any": [
+      "update_mapping",
+      "update_schema"
+    ],
+    "min_confidence": "medium"
+  }
+}

@@ -1,0 +1,73 @@
+# Local stack in containers, as an alternative to `make dev`.
+#
+#   cp .env.example .env   # then run `uv run python scripts/setup_env.py`, or fill the secrets by hand
+#   docker compose up --build
+#
+# NOTE: not exercised on the machine this project was built on (no Docker
+# there). The supported, tested local path is `make setup && make dev`.
+# See docs/PROJECT_STATE.md.
+
+x-relay-env: &relay-env
+  RELAY_ENV: local
+  RELAY_LOG_FORMAT: console
+  RELAY_DATABASE_URL: postgresql+psycopg://relay:relay@db:5432/relay
+  RELAY_QUEUE_BACKEND: local
+  RELAY_CORS_ALLOWED_ORIGINS: http://localhost:5173
+  RELAY_WORKER_BASE_URL: http://worker:8080
+  RELAY_DEMO_DESTINATION_BASE_URL: http://api:8080
+  RELAY_INTERNAL_TOKEN: ${RELAY_INTERNAL_TOKEN:?run scripts/setup_env.py to create .env}
+  RELAY_SECRET_DEMO_WEBHOOK: ${RELAY_SECRET_DEMO_WEBHOOK:?missing in .env}
+  RELAY_SECRET_DEMO_DESTINATION_TOKEN: ${RELAY_SECRET_DEMO_DESTINATION_TOKEN:?missing in .env}
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: relay
+      POSTGRES_PASSWORD: relay # local development database only
+      POSTGRES_DB: relay
+    volumes:
+      - relay-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U relay -d relay"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    build: { context: ., target: api }
+    command: ["relay-migrate", "upgrade"]
+    environment: *relay-env
+    depends_on:
+      db: { condition: service_healthy }
+
+  api:
+    build: { context: ., target: api }
+    environment: *relay-env
+    ports: ["8000:8080"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  worker:
+    build: { context: ., target: worker }
+    environment:
+      <<: *relay-env
+      RELAY_BACKGROUND_LOOPS: "true"
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  web:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
+    environment:
+      RELAY_API_PROXY_TARGET: http://api:8080
+    volumes:
+      - ./apps/web:/app
+      - relay-web-modules:/app/node_modules
+    ports: ["5173:5173"]
+    depends_on: [api]
+
+volumes:
+  relay-pgdata:
+  relay-web-modules:

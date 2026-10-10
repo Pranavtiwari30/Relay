@@ -1,0 +1,52 @@
+# Secrets and local configuration — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*credentials*.json
+*service-account*.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.hypothesis/
+.coverage
+coverage.xml
+htmlcov/
+*.egg-info/
+dist/
+build/
+
+# Node / frontend
+node_modules/
+apps/web/dist/
+apps/web/coverage/
+apps/web/test-results/
+apps/web/playwright-report/
+apps/web/.vite/
+
+# Local runtime state
+.local/
+*.log
+
+# Terraform
+infra/gcp/.terraform/
+infra/gcp/*.tfstate
+infra/gcp/*.tfstate.*
+infra/gcp/*.tfvars
+!infra/gcp/*.tfvars.example
+infra/gcp/crash.log
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Eval fixtures are test data, not credentials
+!evals/fixtures/*.json

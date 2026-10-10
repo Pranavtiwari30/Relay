@@ -1,0 +1,18 @@
+{
+  "name": "destination_5xx_exhausted",
+  "description": "Destination returns 503 on every attempt until retries are exhausted.",
+  "setup": {
+    "default_status": 503
+  },
+  "expect": {
+    "event_status": "DEAD_LETTERED",
+    "cause_category": [
+      "destination_unavailable"
+    ],
+    "actions_any": [
+      "contact_destination_owner",
+      "wait_and_retry"
+    ],
+    "min_confidence": "medium"
+  }
+}

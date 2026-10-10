@@ -1,0 +1,17 @@
+{
+  "name": "delivered_event_is_not_a_failure",
+  "description": "Operator investigates an event that was in fact delivered.",
+  "setup": {
+    "default_status": 200
+  },
+  "expect": {
+    "event_status": "DELIVERED",
+    "cause_category": [
+      "not_a_failure"
+    ],
+    "actions_any": [
+      "no_action"
+    ],
+    "min_confidence": "medium"
+  }
+}

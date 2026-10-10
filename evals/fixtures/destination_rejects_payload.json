@@ -1,0 +1,24 @@
+{
+  "name": "destination_rejects_payload",
+  "description": "Destination validates the order and refuses it with 422.",
+  "setup": {
+    "default_status": 422,
+    "default_body": {
+      "error": "order rejected",
+      "fields": {
+        "quantity": "exceeds stock on hand"
+      }
+    }
+  },
+  "expect": {
+    "event_status": "DEAD_LETTERED",
+    "cause_category": [
+      "destination_rejected_payload"
+    ],
+    "actions_any": [
+      "update_mapping",
+      "contact_destination_owner"
+    ],
+    "min_confidence": "medium"
+  }
+}

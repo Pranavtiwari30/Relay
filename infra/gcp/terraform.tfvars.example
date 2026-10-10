@@ -1,0 +1,14 @@
+# Copy to terraform.tfvars (git-ignored) and fill in. Contains no secrets.
+project_id        = "your-gcp-project-id"
+region            = "us-central1"
+environment       = "staging"
+web_origin        = "https://your-project.pages.dev"
+github_repository = "your-github-user/relay"
+
+# Images are pinned by digest. The deploy workflow passes these; the values
+# below are placeholders so `terraform plan` can run before the first build.
+api_image    = "us-central1-docker.pkg.dev/your-gcp-project-id/relay-staging/api@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+worker_image = "us-central1-docker.pkg.dev/your-gcp-project-id/relay-staging/worker@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+# Every 15 minutes keeps a scale-to-zero database inside its free compute hours.
+dispatch_schedule = "*/15 * * * *"
