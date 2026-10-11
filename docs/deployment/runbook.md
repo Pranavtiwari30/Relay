@@ -1,7 +1,8 @@
 # Deployment runbook
 
 > **Status: not yet deployed.** The Terraform passes `terraform validate` and the workflows pass
-> `actionlint`, but no cloud resource has been created and no workflow has run on GitHub. Expect to
+> `actionlint`, but no cloud resource has been created. The verification jobs have run on GitHub;
+> the build-and-push and release jobs have only ever been skipped. Expect to
 > fix small things on the first real apply. Every step that creates, changes or destroys cloud
 > resources is a deliberate manual action — nothing in this repository does it automatically.
 

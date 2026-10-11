@@ -16,7 +16,7 @@ from relay_core.messaging.publishers import MemoryPublisher
 from relay_core.services import ingestion as ingestion_module
 from relay_core.services.outbox import OutboxDispatcher
 from relay_core.services.processing import Ack
-from tests.support import Harness, order
+from tests.support import INTERNAL_TOKEN, Harness, order
 
 
 def accept(harness: Harness, name: str = "evt", **payload: Any) -> str:
@@ -186,12 +186,12 @@ def test_redirect_is_never_followed(harness: Harness) -> None:
 
 def test_destination_response_is_redacted_and_bounded_before_storage(harness: Harness) -> None:
     harness.destination.enqueue(
-        400, {"error": "bad", "debug": {"api_key": "sk_live_SECRET", "note": "x" * 5000}}
+        400, {"error": "bad", "debug": {"api_key": "fixture-api-key-value", "note": "x" * 5000}}
     )
     event_id = accept(harness)
     harness.pump()
     summary = harness.attempts(event_id)[0].response_summary or ""
-    assert "sk_live_SECRET" not in summary
+    assert "fixture-api-key-value" not in summary
     assert "[REDACTED]" in summary
     assert len(summary) < 2100
     assert "truncated" in summary
@@ -660,7 +660,7 @@ def test_worker_acknowledges_messages_it_can_never_process(harness: Harness) -> 
     garbage = harness.worker.post(
         "/internal/pubsub/push",
         json={"message": {"data": "!!not-base64!!"}},
-        headers={"x-relay-internal-token": "test-internal-token"},
+        headers={"x-relay-internal-token": INTERNAL_TOKEN},
     )
     assert (garbage.status_code, garbage.json()["status"]) == (200, "discarded")
 
@@ -691,7 +691,7 @@ def test_dispatch_endpoint_publishes_and_recovers_in_one_bounded_pass(harness: H
     for index in range(3):
         accept(harness, f"evt-d{index}", order_no=f"A-{index}")
     response = harness.worker.post(
-        "/internal/outbox/dispatch", headers={"x-relay-internal-token": "test-internal-token"}
+        "/internal/outbox/dispatch", headers={"x-relay-internal-token": INTERNAL_TOKEN}
     )
     assert response.status_code == 200
     assert response.json() == {
@@ -804,7 +804,7 @@ def test_local_queue_redelivers_with_backoff_then_dead_letters(harness: Harness)
         if worker_down and path.endswith("/push"):
             raise ConnectionError("worker unreachable")
         return harness.worker.post(
-            path, json=envelope, headers={"x-relay-internal-token": "test-internal-token"}
+            path, json=envelope, headers={"x-relay-internal-token": INTERNAL_TOKEN}
         ).status_code
 
     pump = LocalQueuePump(
@@ -841,7 +841,7 @@ def test_local_queue_delivers_through_the_real_worker_endpoint(harness: Harness)
 
     def transport(path: str, envelope: dict[str, Any]) -> int:
         return harness.worker.post(
-            path, json=envelope, headers={"x-relay-internal-token": "test-internal-token"}
+            path, json=envelope, headers={"x-relay-internal-token": INTERNAL_TOKEN}
         ).status_code
 
     pump = LocalQueuePump(

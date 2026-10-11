@@ -102,8 +102,9 @@ make test-web-e2e   # browser tests against a throwaway stack
 | End to end | 7 | Two real servers, queue and demo destination over real sockets |
 | Web unit · browser | 30 · 7 | UI states, permission gating, accessibility; the main journeys in Chromium |
 
-Core logic coverage is 90% (floor: 80%). Results are from one local run on 2026-10-11; CI has not
-executed yet. Details and the acceptance-criteria mapping:
+Core logic coverage is 90% (floor: 80%). Counts are from a local run on 2026-10-11. The same
+suites also passed on Linux in the first GitHub Actions run that day. Details and the
+acceptance-criteria mapping:
 [testing-strategy.md](docs/quality/testing-strategy.md).
 
 ## Repository layout
@@ -143,12 +144,19 @@ real processes; TLS delivery with address pinning against a public host (valid c
 mismatched certificate refused); Terraform with `terraform validate`; workflows with `actionlint`;
 the smoke test against a local API.
 
+**Verified in CI (first GitHub Actions run, 2026-10-11, Ubuntu):** Python lint, strict types,
+migrations, tests and coverage floor; web lint, types, tests and build; browser end-to-end; both
+dependency audits; Terraform validation; and a build of both container images. That run's secret
+scan failed on three synthetic test fixtures that resembled real key formats — no real credential
+was committed — and the fix is described in [project state](docs/PROJECT_STATE.md).
+
 **Not verified:**
 
 - **Nothing has been deployed.** No cloud resource exists. Pub/Sub, Cloud Run, Scheduler, Secret
-  Manager, Workload Identity Federation and the Cloudflare proxy have never run this code.
-- **CI has not run** — the repository has no remote yet.
-- **Docker** images and `docker-compose.yml` have not been built (Docker was unavailable).
+  Manager, Workload Identity Federation and the Cloudflare proxy have never run this code. The
+  deploy jobs have only ever been skipped.
+- **Container images build but have never been run**, and `docker-compose.yml` has not been
+  exercised.
 - **No live model** has been used. The assistant was tested against scripted model responses; the
   rule-based diagnosis is what actually ran.
 - **No performance, scale or cost measurements** exist, and none are claimed. The cost model is

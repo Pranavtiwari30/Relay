@@ -32,6 +32,7 @@ make test         # Python tests only        make test-unit   # no database need
 make test-web-e2e # Playwright, own stack and throwaway database
 make fmt          # auto-format              make migrate     # apply migrations
 make evals        # investigation eval scorecard (no model)
+make secret-scan  # the CI secret scan, locally (needs gitleaks or Docker); run before pushing
 make tf-check     # terraform fmt + validate (needs terraform on PATH)
 ```
 

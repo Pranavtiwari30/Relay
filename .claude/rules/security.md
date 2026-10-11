@@ -9,6 +9,10 @@ These apply everywhere. Details and the threat model: `docs/architecture/securit
 - The database stores secret **references** (`env:RELAY_SECRET_<NAME>`), never values. Do not widen
   the reference pattern beyond the `RELAY_SECRET_` namespace.
 - No long-lived cloud keys. CI uses OIDC / Workload Identity Federation.
+- A secret-scan finding is investigated, not silenced. Confirm the value is not real (if it is,
+  rotate it; deleting it from Git is not enough). Prefer fixing the fixture. `.gitleaksignore` is
+  only for reviewed findings already in history, one exact fingerprint per line, each with a
+  written reason. Never allowlist a directory or a whole rule.
 
 ## Authentication and authorisation
 

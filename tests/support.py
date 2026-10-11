@@ -56,7 +56,7 @@ from relay_worker.main import create_app as create_worker
 
 PASSWORD = "correct horse battery staple"
 INTERNAL_TOKEN = "test-internal-token"
-WEBHOOK_SECRET = "whsec_test_0123456789"
+WEBHOOK_SECRET = "test-webhook-signing-secret"
 DEST_TOKEN = "dest_test_token_abcdef"
 ORIGIN = "http://localhost:5173"
 

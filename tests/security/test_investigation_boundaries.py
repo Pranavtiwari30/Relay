@@ -27,7 +27,7 @@ from relay_core.ai.providers.base import (
 )
 from relay_core.ai.tools import READ_ONLY_TOOLS, TOOLS_BY_NAME, ToolContext, call_tool
 from relay_core.db.models import Event, IntegrationVersion, Investigation, OutboxMessage
-from tests.support import Harness, order
+from tests.support import DEST_TOKEN, INTERNAL_TOKEN, WEBHOOK_SECRET, Harness, order
 
 pytestmark = pytest.mark.security
 
@@ -727,9 +727,9 @@ def test_connection_secrets_never_reach_the_model(harness: Harness) -> None:
         r.content for batch, _ in provider.received for r in batch or []
     )
     for secret in (
-        "dest_test_token_abcdef",
-        "whsec_test_0123456789",
-        "test-internal-token",
+        DEST_TOKEN,
+        WEBHOOK_SECRET,
+        INTERNAL_TOKEN,
         harness.settings.database_url,
     ):
         assert secret not in everything

@@ -51,8 +51,9 @@ Last full run: **2026-10-11**, on macOS (arm64), Python 3.12, PostgreSQL 16, Nod
 below 80% on `relay_core`. Coverage is treated as a floor that catches untested modules, not as a
 target: no test was written to raise the number.
 
-These are results from one machine. CI has not run yet (the repository has no remote), so they have
-not been reproduced on Linux.
+Counts are from that local run. The first GitHub Actions run (2026-10-11, Ubuntu) passed the
+Python, web, browser end-to-end and Terraform/image-build jobs; its secret scan failed on three
+synthetic test fixtures, since replaced. See [PROJECT_STATE.md](../PROJECT_STATE.md).
 
 ## Acceptance criteria → tests
 
@@ -121,7 +122,7 @@ response shapes, so the tests pin the wire format and run offline.
 | Real Pub/Sub, Cloud Run, Scheduler, Secret Manager, Workload Identity | No cloud credentials; nothing is deployed | Medium. Permissions, audiences and ingress settings are the likeliest first-deploy problems. |
 | Real Google OIDC token verification | Needs a Google-signed token | Low. The claim checks are tested; the library call is one line. |
 | The Pub/Sub emulator | Needs Java or Docker, neither present | Low. The envelope contract is tested and the local queue reproduces the semantics. |
-| Docker image build and `docker compose` | Docker not installed on the development machine | Medium until CI builds them. |
+| Running the container images; `docker compose` | Docker not installed on the development machine. CI builds both images but does not start them. | Medium. |
 | A live model (Ollama or hosted) | Ollama not installed; no API key used | Medium for report *quality*; low for safety, which does not depend on the model. |
 | TLS to a real destination, in CI | Needs the network | Checked by hand once against a public host (valid certificate accepted, mismatched certificate refused). |
 | Cloudflare Pages Function proxy | Needs a Pages project | Medium. Written from the documented API, unexecuted. |
@@ -139,7 +140,9 @@ make test-web          # Vitest
 make test-web-e2e      # Playwright; starts its own stack on spare ports with a throwaway database
 make coverage          # with the 80% floor on relay_core
 make evals             # eval scorecard, deterministic investigator
+make secret-scan       # the CI secret scan, locally (needs gitleaks or Docker)
 make check             # everything CI runs on a pull request, except browser e2e and security scans
+                       # (run `make secret-scan` too before pushing: it is the gate `make check` omits)
 ```
 
 Database-backed tests refuse to run against a database whose name does not contain `test`, because

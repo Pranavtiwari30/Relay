@@ -8,8 +8,8 @@ commands, environment variables, tests or known limits change.
 ## Baseline
 
 On 2026-10-11 the repository contained one file, `Relay_Claude_Code_Master_Prompt.md`, and was not
-a Git repository. Everything else was built from that brief. Git was initialised on `main`;
-**nothing has been committed yet** (commits are left to the owner).
+a Git repository. Everything else was built from that brief. The owner committed it as `f118d55`
+and pushed to `github.com/Pranavtiwari30/Relay` the same day.
 
 ## Phase
 
@@ -103,6 +103,39 @@ Coverage: 90% of `relay_core`, 92% overall (floor 80% on `relay_core`).
 Checked by hand once: HTTPS delivery with address pinning to a public host succeeds with a valid
 certificate and is refused when the certificate does not match the hostname.
 
+### First CI run — 2026-10-11, commit `f118d55`, Ubuntu
+
+[Run 38094304293](https://github.com/Pranavtiwari30/Relay/actions/runs/38094304293) (workflow *Deploy (staging)*, which calls the CI workflow).
+
+| Job | Result |
+|---|---|
+| Python — lint, types, migrations, tests, coverage floor, evals | pass |
+| Web — lint, types, tests, build | pass |
+| Browser end-to-end (Playwright) | pass |
+| Terraform validate + build of both container images | pass |
+| Dependency, secret and SBOM checks | **failed at the secret scan** (both dependency audits passed first; SBOM step did not run) |
+| Build and push, deploy, web deploy | skipped by design — no cloud variables are configured |
+
+**Cause of the failure.** gitleaks reported three findings, all synthetic test fixtures: a made-up
+string in a payment provider's live-key format used by the redaction test (two lines), and the test
+harness's fake webhook secret. No real credential was committed: `.env` is not tracked, and none of
+the locally generated secret values appears in any tracked file.
+
+**Fix (in the working tree; passes locally, not yet re-run in CI).**
+
+- The fixtures were replaced with plainly synthetic values, so new commits scan clean. All 632
+  tests still pass.
+- The three findings already in commit `f118d55` are listed by exact fingerprint in
+  `.gitleaksignore`, each with its reason. The scanner checks every commit, so without this the
+  history would keep failing; the alternative is rewriting history with a force-push, which was not
+  done.
+- `make secret-scan` now runs the same check locally (needs `gitleaks` or Docker).
+- Verified with gitleaks 8.30.1: the history scan and the pending-changes scan both report no
+  leaks, and removing `.gitleaksignore` brings the three findings back.
+
+Also noted from that run: GitHub will move `ubuntu-latest` to Ubuntu 26 from 2026-10-19. The
+workflows use `ubuntu-latest`, so the image under them will change; nothing has been pinned.
+
 ## Environment variables (names only)
 
 All are prefixed `RELAY_`. Defaults are in `packages/relay_core/relay_core/config.py`; local values
@@ -137,13 +170,14 @@ Nothing below has run. Each is written from documentation and validated only sta
 | Worker OIDC auth | Claim checks tested with an injected verifier; Google's verification call never ran. | `custom_audiences` matching the token audience. |
 | Cloud Run ingress | Worker set to internal-only. Google's documentation (read 2026-10-11) says Pub/Sub and Scheduler in the same project are admitted. | Confirm on first deploy. |
 | Cloud Scheduler | Job definition unexecuted. | Auth and cadence. |
-| GitHub Actions | Lint clean; never executed (no remote). Action versions are current majors pinned by SHA; inputs follow long-standing names. | Input names on newer action majors. |
-| Docker | `Dockerfile` and `docker-compose.yml` never built: Docker was unavailable. | `uv sync` flags in the image build. |
+| GitHub Actions — deploy path | The verification jobs have run (see above). The build-and-push, release and web-deploy jobs have only been skipped, so their steps are still unexecuted. | Registry login, `gcloud` steps, the rollback step. |
+| GitHub Actions — SBOM step | Has not run yet (it follows the secret scan, which failed). | Action inputs. |
+| Containers | Both images build in CI. Neither has been started, and `docker-compose.yml` has never been run. | Start-up command and port; Compose wiring. |
 | Cloudflare Pages proxy | `apps/web/functions/` unexecuted. | Routing precedence vs `_redirects`. |
 | Neon | No project created; pool sizing is a guess for a serverless database. | Connection limits; cold-start latency on `/readyz`. |
 | Live model | No provider called. Ollama not installed; no API key used. | Tool-calling reliability of a given local model. |
 | Cost | Arithmetic from published allowances; no bill. | Neon compute hours; Artifact Registry storage. |
-| Linux | Everything ran on macOS only. | — |
+| Linux | Tests, builds and browser e2e pass on GitHub's Ubuntu runner. Nothing else has run on Linux. | — |
 
 ## Known limitations
 
@@ -167,9 +201,10 @@ No known functional bugs at the time of writing.
 
 ## Next tasks, in priority order
 
-1. **Commit the work** and push to a GitHub repository so CI runs (first evidence on Linux; first
-   Docker build).
-2. **Fix whatever CI turns up** — most likely action input names or the image build.
+1. **Commit and push the secret-scan fix** (fixtures, `.gitleaksignore`, `make secret-scan`, docs)
+   and confirm the security job, including the SBOM step, goes green.
+2. **Decide whether to pin the runner image** (`ubuntu-24.04`) before `ubuntu-latest` moves to
+   Ubuntu 26 on 2026-10-19, or let it float and fix what breaks.
 3. **Deploy staging** following `docs/deployment/runbook.md`, then record what differed from the
    assumptions above and correct the docs.
 4. **Read the first billing report** and replace the cost estimates with observed figures.

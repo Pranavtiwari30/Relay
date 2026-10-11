@@ -1,0 +1,21 @@
+# Acknowledged secret-scan findings. One fingerprint per line: commit:file:rule:line.
+#
+# Each entry below was reviewed and is a synthetic test fixture, not a credential.
+# The entries are exact (one commit, one file, one rule, one line), so they cannot
+# hide a different finding, and they stop matching if that line is ever re-added.
+#
+# Policy: do not add an entry to make a red build green. First confirm the value
+# is not real (if it is, rotate it — removing it from Git is not enough), then
+# prefer changing the fixture so it no longer resembles a credential. This file is
+# only for findings that already exist in history and cannot be changed without
+# rewriting it.
+
+# Commit f118d55 — redaction test used a made-up string in a payment provider's
+# live-key format to prove credential-shaped text is masked. Replaced since with
+# a neutral token; the old line remains in history.
+f118d55a7b8f57aa3557e2167c3fb795a95c7a0d:tests/security/test_edge_defences.py:stripe-access-token:410
+f118d55a7b8f57aa3557e2167c3fb795a95c7a0d:tests/security/test_edge_defences.py:stripe-access-token:412
+
+# Commit f118d55 — the test harness's fake webhook signing secret. Never used
+# outside the test suite; replaced since with an obviously synthetic value.
+f118d55a7b8f57aa3557e2167c3fb795a95c7a0d:tests/support.py:generic-api-key:59

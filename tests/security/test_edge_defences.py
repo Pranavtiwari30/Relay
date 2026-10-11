@@ -211,7 +211,7 @@ def test_private_targets_need_an_explicit_exact_allowlist_entry() -> None:
 
 # --- webhook signatures ----------------------------------------------------
 
-SECRET = b"whsec_test_secret"
+SECRET = b"test-signing-secret"
 BODY = b'{"id":"ord_1","qty":2}'
 NOW = datetime(2026, 3, 1, 12, 0, 0, tzinfo=UTC)
 TS = str(int(NOW.timestamp()))
@@ -407,9 +407,9 @@ def test_redact_walks_nested_structures_without_mutating_input() -> None:
 
 
 def test_redact_text_masks_credentials_but_keeps_ordinary_numbers() -> None:
-    text = 'Authorization: Bearer sk_live_abcdefgh12345 failed; api_key="zzz999"; order 1234567890123456'
+    text = 'Authorization: Bearer example-bearer-abcdefgh12345 failed; api_key="zzz999"; order 1234567890123456'
     masked = redact_text(text)
-    assert "sk_live_abcdefgh12345" not in masked
+    assert "example-bearer-abcdefgh12345" not in masked
     assert "zzz999" not in masked
     assert "1234567890123456" in masked  # fails the Luhn check, so it is not a card number
 

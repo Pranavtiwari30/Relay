@@ -217,7 +217,7 @@ def test_unsafe_destination_configuration_is_rejected_at_save_time(
         "RELAY_SECRET_X",
         "env:relay_secret_x",
         "file:/etc/passwd",
-        "sk_live_actual_secret_value",
+        "a-pasted-secret-value-not-a-reference",
     ],
 )
 def test_secret_references_cannot_reach_outside_their_namespace(

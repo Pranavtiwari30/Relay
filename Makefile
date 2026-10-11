@@ -10,7 +10,7 @@ PY_SRC := packages/relay_core/relay_core services/api/relay_api services/worker/
 .DEFAULT_GOAL := help
 .PHONY: help setup install db-up db-down db-reset migrate seed dev dev-api dev-worker dev-web \
         test test-unit test-integration test-e2e test-web test-web-e2e coverage lint fmt typecheck \
-        audit check evals mcp openapi tf-check clean
+        audit secret-scan check evals mcp openapi tf-check clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -100,6 +100,15 @@ audit: ## Dependency vulnerability scans
 	uv export --frozen --no-dev --no-emit-workspace --format requirements-txt -o /tmp/relay-requirements.txt -q
 	uv run pip-audit -r /tmp/relay-requirements.txt --disable-pip
 	cd apps/web && npm audit --omit=dev --audit-level=high
+
+secret-scan: ## Secret scan, as CI runs it: Git history plus uncommitted changes (needs gitleaks or Docker)
+	@if command -v gitleaks >/dev/null 2>&1; then \
+	  gitleaks git . --redact --no-banner --exit-code 1 && gitleaks git . --pre-commit --redact --no-banner --exit-code 1; \
+	elif command -v docker >/dev/null 2>&1; then \
+	  docker run --rm -v "$(CURDIR):/repo" ghcr.io/gitleaks/gitleaks:v8.30.1 git /repo --redact --no-banner --exit-code 1; \
+	else \
+	  echo "Install gitleaks (brew install gitleaks) or Docker to run the secret scan."; exit 1; \
+	fi
 
 check: lint typecheck coverage test-web ## Everything CI runs on a pull request
 	cd apps/web && npm run build

@@ -189,7 +189,7 @@ def test_convert_rejects_type_mismatches(value: Any, op: ConvertOp) -> None:
 
 
 def test_conversion_errors_do_not_echo_long_values() -> None:
-    secret_like = "sk_live_" + "a" * 200
+    secret_like = "token-" + "a" * 200
     with pytest.raises(ConversionError) as info:
         convert(secret_like, ConvertOp.INTEGER)
     assert len(str(info.value)) < 120

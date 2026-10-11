@@ -27,6 +27,10 @@ Read `docs/quality/testing-strategy.md` for the layers and what each proves.
   failing test.
 - Security-relevant changes (auth, RBAC, SSRF, signatures, redaction, assistant tools) need a test
   in `tests/security`.
+- **Fixtures must not look like real credentials.** The secret scan covers `tests/` too. Never use
+  a vendor's key format (`sk_live_…`, `whsec_…`, `AKIA…`, `ghp_…`, a JWT) even with fake content;
+  use plainly synthetic values such as `test-webhook-signing-secret`. Reuse the constants in
+  `tests/support.py` rather than repeating literals. Run `make secret-scan` before pushing.
 - Normal CI never calls a live model. Use `ScriptedProvider` or `httpx.MockTransport`.
 - Coverage floor is 80% on `relay_core`. Do not add tests whose only purpose is the number.
 
